@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: software-marketplace
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:marketplace_db}
+    username: marketplace_user
+    password: marketplace_pass
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema — Hibernate must never auto-generate/alter tables.
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-in-env-CHANGE-ME}
+    access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}      # 15 min
+    refresh-token-expiry-ms: ${JWT_REFRESH_EXPIRY_MS:604800000} # 7 days
+  file-storage:
+    provider: ${FILE_STORAGE_PROVIDER:s3}
+    bucket: ${FILE_STORAGE_BUCKET:marketplace-products}
+  download:
+    token-expiry-ms: ${DOWNLOAD_TOKEN_EXPIRY_MS:3600000}        # 1 hour
+  escrow:
+    hold-days: ${ESCROW_HOLD_DAYS:14}
+
+logging:
+  level:
+    root: INFO
+    com.marketplace: DEBUG
+    org.hibernate.SQL: DEBUG
