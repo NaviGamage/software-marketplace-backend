@@ -29,7 +29,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
 
         if (request.role() == UserRole.ADMIN) {
             throw new BadRequestException("Cannot self-register as ADMIN");
@@ -49,13 +49,7 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        String token = jwtService.generateAccessToken(
-                savedUser.getEmail(),
-                savedUser.getId(),
-                savedUser.getRole().name()
-        );
-
-        return AuthResponse.of(token, UserResponse.fromEntity(savedUser));
+        return UserResponse.fromEntity(savedUser);
     }
 
     public AuthResponse login(LoginRequest request) {

@@ -4,6 +4,7 @@ import com.marketplace.dto.request.LoginRequest;
 import com.marketplace.dto.request.RegisterRequest;
 import com.marketplace.dto.response.ApiResponse;
 import com.marketplace.dto.response.AuthResponse;
+import com.marketplace.dto.response.UserResponse;
 import com.marketplace.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +23,10 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
+    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        UserResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(response, "Registration successful"));
+                .body(ApiResponse.success(response, "Registration successful. Please log in."));
     }
 
     @PostMapping("/login")
