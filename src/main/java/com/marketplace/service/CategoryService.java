@@ -4,9 +4,11 @@ import com.marketplace.dto.request.CreateCategoryRequest;
 import com.marketplace.dto.request.UpdateCategoryRequest;
 import com.marketplace.dto.response.CategoryResponse;
 import com.marketplace.entity.Category;
+import com.marketplace.exception.BadRequestException;
 import com.marketplace.exception.DuplicateResourceException;
 import com.marketplace.exception.ResourceNotFoundException;
 import com.marketplace.repository.CategoryRepository;
+import com.marketplace.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     @Transactional
     public CategoryResponse createCategory(CreateCategoryRequest request) {
@@ -37,18 +40,21 @@ public class CategoryService {
         return CategoryResponse.fromEntity(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<CategoryResponse> getAllCategories() {
         return categoryRepository.findAll().stream()
                 .map(CategoryResponse::fromEntity)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
         return CategoryResponse.fromEntity(category);
     }
 
+    @Transactional(readOnly = true)
     public CategoryResponse getCategoryBySlug(String slug) {
         Category category = categoryRepository.findBySlug(slug)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", slug));
@@ -78,6 +84,10 @@ public class CategoryService {
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
+
+        if (productRepository.existsByCategoryId(id)) {
+            throw new BadRequestException("Cannot delete category because it contains active products");
+        }
 
         categoryRepository.delete(category);
     }
