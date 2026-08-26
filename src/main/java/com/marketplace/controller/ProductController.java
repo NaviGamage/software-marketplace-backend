@@ -85,4 +85,14 @@ public class ProductController {
         productService.deleteProduct(id, principal.getId());
         return ResponseEntity.ok(ApiResponse.success(null, "Product deleted successfully"));
     }
+
+    @PatchMapping("/{id}/submit")
+    @PreAuthorize("hasRole('VENDOR')")
+    public ResponseEntity<ApiResponse<ProductResponse>> submitForReview(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id
+    ) {
+        ProductResponse submitted = productService.submitForReview(id, principal.getId());
+        return ResponseEntity.ok(ApiResponse.success(submitted, "Product submitted for review"));
+    }
 }
