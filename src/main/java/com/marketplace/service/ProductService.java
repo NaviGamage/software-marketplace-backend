@@ -1,12 +1,14 @@
 package com.marketplace.service;
 
 import com.marketplace.dto.request.CreateProductRequest;
+import com.marketplace.dto.request.RejectProductRequest;
 import com.marketplace.dto.request.UpdateProductRequest;
 import com.marketplace.dto.response.ProductResponse;
 import com.marketplace.entity.Category;
 import com.marketplace.entity.Product;
 import com.marketplace.entity.User;
 import com.marketplace.enums.ProductStatus;
+import com.marketplace.exception.BadRequestException;
 import com.marketplace.exception.DuplicateResourceException;
 import com.marketplace.exception.ForbiddenException;
 import com.marketplace.exception.ResourceNotFoundException;
@@ -49,31 +51,25 @@ public class ProductService {
                 .demoUrl(request.demoUrl())
                 .priceRegular(request.priceRegular())
                 .priceExtended(request.priceExtended())
-                .status(ProductStatus.DRAFT) // Every product starts as DRAFT; file upload + submission move it forward.
+                .status(ProductStatus.DRAFT)
                 .build();
 
         Product saved = productRepository.save(product);
         return ProductResponse.fromEntity(saved);
     }
 
-    // Public: only APPROVED products, paginated.
     @Transactional(readOnly = true)
     public Page<ProductResponse> getApprovedProducts(Pageable pageable) {
         return productRepository.findByStatus(ProductStatus.APPROVED, pageable)
                 .map(ProductResponse::fromEntity);
     }
 
-    // Public: APPROVED products within one category.
     @Transactional(readOnly = true)
     public Page<ProductResponse> getApprovedProductsByCategory(Long categoryId, Pageable pageable) {
         return productRepository.findByStatusAndCategoryId(ProductStatus.APPROVED, categoryId, pageable)
                 .map(ProductResponse::fromEntity);
     }
 
-    // Public product detail page — but a non-APPROVED product should only be
-    // visible to its owning vendor or an admin, not to the public. Since this
-    // method has no caller identity, callers needing that check use
-    // getProductForVendor / the admin queue instead; this is for the public page only.
     @Transactional(readOnly = true)
     public ProductResponse getApprovedProductBySlug(String slug) {
         Product product = productRepository.findBySlug(slug)
@@ -86,7 +82,6 @@ public class ProductService {
         return ProductResponse.fromEntity(product);
     }
 
-    // Vendor dashboard: "my products" — every status, only this vendor's own.
     @Transactional(readOnly = true)
     public Page<ProductResponse> getMyProducts(Long vendorId, Pageable pageable) {
         return productRepository.findByVendorId(vendorId, pageable)
@@ -107,9 +102,6 @@ public class ProductService {
         product.setPriceExtended(request.priceExtended());
         product.setCategory(category);
 
-        // Editing an APPROVED product sends it back for re-review rather than
-        // silently changing a live listing — same logic a marketplace like
-        // Envato applies to material edits.
         if (product.getStatus() == ProductStatus.APPROVED) {
             product.setStatus(ProductStatus.PENDING_REVIEW);
         }
@@ -124,6 +116,22 @@ public class ProductService {
         productRepository.delete(product);
     }
 
+    // Vendor: moves a DRAFT product into the admin approval queue.
+    @Transactional
+    public ProductResponse submitForReview(Long productId, Long vendorId) {
+        Product product = getOwnedProduct(productId, vendorId);
+
+        if (product.getStatus() != ProductStatus.DRAFT && product.getStatus() != ProductStatus.REJECTED) {
+            throw new BadRequestException(
+                    "Only DRAFT or REJECTED products can be submitted for review (current status: " + product.getStatus() + ")"
+            );
+        }
+
+        product.setStatus(ProductStatus.PENDING_REVIEW);
+        Product updated = productRepository.save(product);
+        return ProductResponse.fromEntity(updated);
+    }
+
     // Shared ownership check: loads the product and verifies it belongs to
     // this vendor. Used by every vendor-facing write operation so the
     // "is this actually your product?" logic lives in exactly one place.
@@ -136,5 +144,47 @@ public class ProductService {
         }
 
         return product;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getPendingProducts(Pageable pageable) {
+        return productRepository.findByStatusOrderByCreatedAtAsc(ProductStatus.PENDING_REVIEW, pageable)
+                .map(ProductResponse::fromEntity);
+    }
+
+    @Transactional
+    public ProductResponse approveProduct(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+
+        if (product.getStatus() != ProductStatus.PENDING_REVIEW) {
+            throw new BadRequestException(
+                    "Only products in PENDING_REVIEW can be approved (current status: " + product.getStatus() + ")"
+            );
+        }
+
+        product.setStatus(ProductStatus.APPROVED);
+        product.setRejectionReason(null);
+
+        Product updated = productRepository.save(product);
+        return ProductResponse.fromEntity(updated);
+    }
+
+    @Transactional
+    public ProductResponse rejectProduct(Long productId, RejectProductRequest request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+
+        if (product.getStatus() != ProductStatus.PENDING_REVIEW) {
+            throw new BadRequestException(
+                    "Only products in PENDING_REVIEW can be rejected (current status: " + product.getStatus() + ")"
+            );
+        }
+
+        product.setStatus(ProductStatus.REJECTED);
+        product.setRejectionReason(request.reason());
+
+        Product updated = productRepository.save(product);
+        return ProductResponse.fromEntity(updated);
     }
 }
