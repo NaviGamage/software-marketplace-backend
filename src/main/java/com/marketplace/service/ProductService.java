@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public ProductResponse createProduct(Long vendorId, CreateProductRequest request) {
@@ -183,6 +185,37 @@ public class ProductService {
 
         product.setStatus(ProductStatus.REJECTED);
         product.setRejectionReason(request.reason());
+
+        Product updated = productRepository.save(product);
+        return ProductResponse.fromEntity(updated);
+    }
+
+    // Vendor: uploads/replaces the source-code zip for a product. Only allowed
+    // while the product is still DRAFT — once submitted for review, the file
+    // is what the admin is reviewing, so it can't be swapped underneath them.
+    @Transactional
+    public ProductResponse uploadProductFile(Long productId, Long vendorId, MultipartFile file) {
+        Product product = getOwnedProduct(productId, vendorId);
+
+        if (product.getStatus() != ProductStatus.DRAFT) {
+            throw new BadRequestException(
+                    "Files can only be uploaded while the product is in DRAFT status (current status: " + product.getStatus() + ")"
+            );
+        }
+
+        FileStorageService.UploadResult result = fileStorageService.uploadProductFile(file, vendorId, productId);
+
+        if (productRepository.existsByFileSha256(result.fileSha256())) {
+            fileStorageService.deleteFile(result.fileKey());
+            throw new BadRequestException("This exact file has already been uploaded to the platform");
+        }
+
+        if (product.getFileKey() != null) {
+            fileStorageService.deleteFile(product.getFileKey());
+        }
+
+        product.setFileKey(result.fileKey());
+        product.setFileSha256(result.fileSha256());
 
         Product updated = productRepository.save(product);
         return ProductResponse.fromEntity(updated);

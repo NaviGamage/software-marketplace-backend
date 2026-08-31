@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/products")
@@ -94,5 +95,16 @@ public class ProductController {
     ) {
         ProductResponse submitted = productService.submitForReview(id, principal.getId());
         return ResponseEntity.ok(ApiResponse.success(submitted, "Product submitted for review"));
+    }
+
+    @PostMapping(value = "/{id}/upload", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('VENDOR')")
+    public ResponseEntity<ApiResponse<ProductResponse>> uploadProductFile(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file
+    ) {
+        ProductResponse updated = productService.uploadProductFile(id, principal.getId(), file);
+        return ResponseEntity.ok(ApiResponse.success(updated, "File uploaded successfully"));
     }
 }
