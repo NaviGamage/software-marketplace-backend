@@ -17,6 +17,7 @@ public record ProductResponse(
         BigDecimal priceRegular,
         BigDecimal priceExtended,
         String currentVersion,
+        boolean hasFile,
         ProductStatus status,
         String rejectionReason,
         OffsetDateTime createdAt,
@@ -34,6 +35,7 @@ public record ProductResponse(
                 product.getPriceRegular(),
                 product.getPriceExtended(),
                 product.getCurrentVersion(),
+                product.getFileKey() != null,
                 product.getStatus(),
                 product.getRejectionReason(),
                 product.getCreatedAt(),
@@ -41,6 +43,8 @@ public record ProductResponse(
         );
     }
 
+    // Nested summaries instead of embedding full UserResponse/CategoryResponse —
+    // a product listing needs the vendor's name, not their email or account status.
     public record VendorSummary(Long id, String fullName) {
     }
 
