@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.UUID;
 
@@ -55,7 +56,7 @@ public class FileStorageService {
         return new UploadResult(key, sha256);
     }
 
-    public String generatePresignedDownloadUrl(String fileKey) {
+    public PresignedDownload generatePresignedDownloadUrl(String fileKey) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucket)
                 .key(fileKey)
@@ -67,7 +68,12 @@ public class FileStorageService {
                 .build();
 
         PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
-        return presigned.url().toString();
+
+        Instant expiresAt = Instant.now().plusMillis(downloadUrlExpiryMs);
+        return new PresignedDownload(presigned.url().toString(), expiresAt);
+    }
+
+    public record PresignedDownload(String url, Instant expiresAt) {
     }
 
     public void deleteFile(String fileKey) {
