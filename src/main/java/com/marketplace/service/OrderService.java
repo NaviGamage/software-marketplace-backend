@@ -1,6 +1,7 @@
 package com.marketplace.service;
 
 import com.marketplace.dto.request.CreateOrderRequest;
+import com.marketplace.dto.response.DownloadResponse;
 import com.marketplace.dto.response.OrderItemResponse;
 import com.marketplace.dto.response.OrderResponse;
 import com.marketplace.entity.Order;
@@ -11,6 +12,7 @@ import com.marketplace.enums.EscrowStatus;
 import com.marketplace.enums.OrderStatus;
 import com.marketplace.enums.ProductStatus;
 import com.marketplace.exception.BadRequestException;
+import com.marketplace.exception.ForbiddenException;
 import com.marketplace.exception.ResourceNotFoundException;
 import com.marketplace.repository.OrderItemRepository;
 import com.marketplace.repository.OrderRepository;
@@ -37,6 +39,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.platform.commission-rate}")
     private BigDecimal commissionRate;
@@ -118,5 +121,41 @@ public class OrderService {
     public Page<OrderItemResponse> getMySales(Long vendorId, Pageable pageable) {
         return orderItemRepository.findByVendorId(vendorId, pageable)
                 .map(OrderItemResponse::fromEntity);
+    }
+    @Transactional
+    public DownloadResponse getDownloadLink(Long orderItemId, Long buyerId) {
+        OrderItem item = orderItemRepository.findWithOrderAndProductById(orderItemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
+
+        // Ownership check — bynew order eka mema buyer ge da kiyala
+        if (!item.getOrder().getBuyer().getId().equals(buyerId)) {
+            throw new ForbiddenException("You do not have access to this download");
+        }
+
+        // Payment status check — order eka PAID unath witharai download karanna denne
+        if (item.getOrder().getStatus() != OrderStatus.PAID) {
+            throw new BadRequestException("This order has not been paid for yet");
+        }
+
+        Product product = item.getProduct();
+        if (product.getFileKey() == null || product.getFileKey().isBlank()) {
+            throw new BadRequestException("No downloadable file is available for this product");
+        }
+
+        FileStorageService.PresignedDownload presigned =
+                fileStorageService.generatePresignedDownloadUrl(product.getFileKey());
+
+        // Track first download (analytics/audit walata usable)
+        if (!item.isDownloaded()) {
+            item.setDownloaded(true);
+            orderItemRepository.save(item);
+        }
+
+        return new DownloadResponse(
+                product.getTitle(),
+                product.getCurrentVersion(),
+                presigned.url(),
+                presigned.expiresAt()
+        );
     }
 }

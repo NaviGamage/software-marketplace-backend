@@ -15,4 +15,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     @EntityGraph(attributePaths = {"product", "order"})
     Optional<OrderItem> findByIdAndOrderBuyerId(Long orderItemId, Long buyerId);
+
+    @EntityGraph(attributePaths = {"order", "order.buyer", "product"})
+    Optional<OrderItem> findWithOrderAndProductById(Long id);
 }

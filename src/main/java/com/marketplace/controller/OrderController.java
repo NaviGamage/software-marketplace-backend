@@ -2,6 +2,7 @@ package com.marketplace.controller;
 
 import com.marketplace.dto.request.CreateOrderRequest;
 import com.marketplace.dto.response.ApiResponse;
+import com.marketplace.dto.response.DownloadResponse;
 import com.marketplace.dto.response.OrderItemResponse;
 import com.marketplace.dto.response.OrderResponse;
 import com.marketplace.security.UserPrincipal;
@@ -23,7 +24,7 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    @PostMapping
+    @PostMapping("/checkout")
     @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<ApiResponse<OrderResponse>> checkout(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -52,5 +53,15 @@ public class OrderController {
     ) {
         Page<OrderItemResponse> sales = orderService.getMySales(principal.getId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(sales));
+    }
+
+    @GetMapping("/items/{orderItemId}/download")
+    @PreAuthorize("hasRole('BUYER')")
+    public ResponseEntity<ApiResponse<DownloadResponse>> getDownloadLink(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderItemId
+    ) {
+        DownloadResponse response = orderService.getDownloadLink(orderItemId, principal.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
