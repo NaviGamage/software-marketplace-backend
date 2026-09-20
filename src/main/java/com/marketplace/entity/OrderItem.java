@@ -77,4 +77,8 @@ public class OrderItem {
     @Generated(event = {EventType.INSERT, EventType.UPDATE})
     @Column(name = "updated_at", insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payout_id")
+    private Payout payout;
 }

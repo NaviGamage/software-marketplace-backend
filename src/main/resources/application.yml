@@ -28,24 +28,42 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
 server:
   port: ${SERVER_PORT:8080}
 
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  access-key: ${AWS_ACCESS_KEY:}
+  secret-key: ${AWS_SECRET_KEY:}
+  s3:
+    endpoint: ${AWS_S3_ENDPOINT:https://dvcorobckqcftxplualt.storage.supabase.co/storage/v1/s3}
+    bucket: ${AWS_S3_BUCKET:marketplace}
+
 app:
   jwt:
-    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-in-env-CHANGE-ME}
-    access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}      # 15 min
-    refresh-token-expiry-ms: ${JWT_REFRESH_EXPIRY_MS:604800000} # 7 days
-  file-storage:
-    provider: ${FILE_STORAGE_PROVIDER:s3}
-    bucket: ${FILE_STORAGE_BUCKET:marketplace-products}
+    secret: ${JWT_SECRET:xtDctwHEtN5oLYKtZXdAF1zNHKbHhBow5vmfFsfHWPAwtGEQuQ5bKu40DJjESo50}
+    access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
+    refresh-token-expiry-ms: ${JWT_REFRESH_EXPIRY_MS:604800000}
   download:
-    token-expiry-ms: ${DOWNLOAD_TOKEN_EXPIRY_MS:3600000}        # 1 hour
+    token-expiry-ms: ${DOWNLOAD_TOKEN_EXPIRY_MS:3600000}
   escrow:
     hold-days: ${ESCROW_HOLD_DAYS:14}
+  payout:
+    minimum-amount: ${PAYOUT_MINIMUM_AMOUNT:20.00}
+  platform:
+    commission-rate: ${PLATFORM_COMMISSION_RATE:0.20}
 
 logging:
   level:
     root: INFO
     com.marketplace: DEBUG
     org.hibernate.SQL: DEBUG
+
+
+
+
