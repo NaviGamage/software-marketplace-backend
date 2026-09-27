@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,6 +32,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
 
     List<OrderItem> findByPayoutId(Long payoutId);
+
+    Page<OrderItem> findByEscrowStatus(EscrowStatus escrowStatus, Pageable pageable);
 
     @Modifying
     @Query("UPDATE OrderItem o SET o.escrowStatus = :newStatus WHERE o.escrowStatus = :currentStatus AND o.escrowReleaseDate <= :now")

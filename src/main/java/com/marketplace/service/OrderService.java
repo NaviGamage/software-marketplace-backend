@@ -127,14 +127,19 @@ public class OrderService {
         OrderItem item = orderItemRepository.findWithOrderAndProductById(orderItemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order item not found"));
 
-        // Ownership check — bynew order eka mema buyer ge da kiyala
+        // Ownership check
         if (!item.getOrder().getBuyer().getId().equals(buyerId)) {
             throw new ForbiddenException("You do not have access to this download");
         }
 
-        // Payment status check — order eka PAID unath witharai download karanna denne
+        // Payment status check
         if (item.getOrder().getStatus() != OrderStatus.PAID) {
             throw new BadRequestException("This order has not been paid for yet");
+        }
+
+        // NEW CHECK — block download if refunded or under dispute
+        if (item.getEscrowStatus() == EscrowStatus.REFUNDED || item.getEscrowStatus() == EscrowStatus.DISPUTED) {
+            throw new BadRequestException("This item is not available for download");
         }
 
         Product product = item.getProduct();
@@ -145,7 +150,7 @@ public class OrderService {
         FileStorageService.PresignedDownload presigned =
                 fileStorageService.generatePresignedDownloadUrl(product.getFileKey());
 
-        // Track first download (analytics/audit walata usable)
+        // Track first download (analytics/audit usable)
         if (!item.isDownloaded()) {
             item.setDownloaded(true);
             orderItemRepository.save(item);

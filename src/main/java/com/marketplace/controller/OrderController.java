@@ -1,11 +1,10 @@
 package com.marketplace.controller;
 
 import com.marketplace.dto.request.CreateOrderRequest;
-import com.marketplace.dto.response.ApiResponse;
-import com.marketplace.dto.response.DownloadResponse;
-import com.marketplace.dto.response.OrderItemResponse;
-import com.marketplace.dto.response.OrderResponse;
+import com.marketplace.dto.request.DisputeRequest;
+import com.marketplace.dto.response.*;
 import com.marketplace.security.UserPrincipal;
+import com.marketplace.service.DisputeService;
 import com.marketplace.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,12 +16,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+
+
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
+    private final DisputeService disputeService;
 
     @PostMapping("/checkout")
     @PreAuthorize("hasRole('BUYER')")
@@ -63,5 +65,16 @@ public class OrderController {
     ) {
         DownloadResponse response = orderService.getDownloadLink(orderItemId, principal.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/items/{orderItemId}/dispute")
+    @PreAuthorize("hasRole('BUYER')")
+    public ResponseEntity<ApiResponse<DisputeResponse>> openDispute(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long orderItemId,
+            @Valid @RequestBody DisputeRequest request
+    ) {
+        DisputeResponse response = disputeService.openDispute(orderItemId, principal.getId(), request.reason());
+        return ResponseEntity.ok(ApiResponse.success(response, "Dispute opened"));
     }
 }
