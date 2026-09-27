@@ -81,4 +81,16 @@ public class OrderItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payout_id")
     private Payout payout;
+
+    @Column(name = "dispute_reason", columnDefinition = "TEXT")
+    private String disputeReason;
+
+    @Column(name = "disputed_at")
+    private OffsetDateTime disputedAt;
+
+    @Column(name = "resolution_note", columnDefinition = "TEXT")
+    private String resolutionNote;
+
+    @Column(name = "resolved_at")
+    private OffsetDateTime resolvedAt;
 }
