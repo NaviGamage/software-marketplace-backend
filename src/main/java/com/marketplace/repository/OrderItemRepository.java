@@ -2,6 +2,7 @@ package com.marketplace.repository;
 
 import com.marketplace.entity.OrderItem;
 import com.marketplace.enums.EscrowStatus;
+import com.marketplace.enums.OrderStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,4 +55,14 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             "AND o.payout IS NULL " +
             "ORDER BY o.escrowReleaseDate ASC")
     List<OrderItem> findEligibleForPayoutWithLock(@Param("vendorId") Long vendorId);
+
+    @Query("SELECT COUNT(oi) > 0 FROM OrderItem oi " +
+            "WHERE oi.product.id = :productId AND oi.order.buyer.id = :buyerId " +
+            "AND oi.order.status = :paidStatus AND oi.escrowStatus <> :excludedEscrowStatus")
+    boolean existsVerifiedPurchase(
+            @Param("productId") Long productId,
+            @Param("buyerId") Long buyerId,
+            @Param("paidStatus") OrderStatus paidStatus,
+            @Param("excludedEscrowStatus") EscrowStatus excludedEscrowStatus
+    );
 }

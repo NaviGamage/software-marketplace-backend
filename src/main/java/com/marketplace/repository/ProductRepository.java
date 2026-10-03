@@ -6,6 +6,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -31,4 +34,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByStatusOrderByCreatedAtAsc(ProductStatus status, Pageable pageable);
 
     boolean existsByCategoryId(Long categoryId);
+
+    @Modifying
+    @Query("UPDATE Product p SET " +
+            "p.averageRating = (SELECT COALESCE(AVG(r.rating), 0) FROM Review r WHERE r.product.id = :productId), " +
+            "p.reviewCount = (SELECT COUNT(r) FROM Review r WHERE r.product.id = :productId) " +
+            "WHERE p.id = :productId")
+    void recalculateRating(@Param("productId") Long productId);
 }
