@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.marketplace.notification.NotificationService;
 
 
 @Service
@@ -31,6 +32,7 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ProductResponse createProduct(Long vendorId, CreateProductRequest request) {
@@ -170,6 +172,7 @@ public class ProductService {
         product.setRejectionReason(null);
 
         Product updated = productRepository.save(product);
+        notificationService.productApproved(updated.getVendor(), updated.getTitle());
         return ProductResponse.fromEntity(updated);
     }
 
@@ -188,6 +191,7 @@ public class ProductService {
         product.setRejectionReason(request.reason());
 
         Product updated = productRepository.save(product);
+        notificationService.productRejected(updated.getVendor(), updated.getTitle(), request.reason());
         return ProductResponse.fromEntity(updated);
     }
 
