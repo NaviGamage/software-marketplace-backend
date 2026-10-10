@@ -6,6 +6,7 @@ import com.marketplace.enums.EscrowStatus;
 import com.marketplace.exception.BadRequestException;
 import com.marketplace.exception.ForbiddenException;
 import com.marketplace.exception.ResourceNotFoundException;
+import com.marketplace.notification.NotificationService;
 import com.marketplace.repository.OrderItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -22,8 +23,8 @@ import java.time.OffsetDateTime;
 public class DisputeService {
 
     private static final Logger log = LoggerFactory.getLogger(DisputeService.class);
-
     private final OrderItemRepository orderItemRepository;
+    private final NotificationService notificationService;
 
     /**
      * Buyer opens a dispute on a purchased item. Only allowed while the item
@@ -54,7 +55,7 @@ public class DisputeService {
         item.setDisputeReason(reason);
         item.setDisputedAt(OffsetDateTime.now());
         orderItemRepository.save(item);
-
+        notificationService.disputeOpened(item.getVendor(), item.getProduct().getTitle(), reason);
         log.info("Dispute opened for order item {} by buyer {}", orderItemId, buyerId);
         return DisputeResponse.fromEntity(item);
     }
@@ -91,7 +92,8 @@ public class DisputeService {
         item.setResolutionNote(note);
         item.setResolvedAt(OffsetDateTime.now());
         orderItemRepository.save(item);
-
+        notificationService.disputeResolved(
+                item.getOrder().getBuyer(), item.getProduct().getTitle(), approve, note);
         log.info("Dispute {} for order item {}: {}",
                 approve ? "APPROVED (refunded)" : "DISMISSED", orderItemId, note);
         return DisputeResponse.fromEntity(item);

@@ -8,6 +8,7 @@ import com.marketplace.entity.User;
 import com.marketplace.enums.PayoutStatus;
 import com.marketplace.exception.BadRequestException;
 import com.marketplace.exception.ResourceNotFoundException;
+import com.marketplace.notification.NotificationService;
 import com.marketplace.repository.OrderItemRepository;
 import com.marketplace.repository.PayoutRepository;
 import com.marketplace.repository.UserRepository;
@@ -34,6 +35,7 @@ public class PayoutService {
     private final PayoutRepository payoutRepository;
     private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Value("${app.payout.minimum-amount}")
     private BigDecimal minimumPayoutAmount;
@@ -139,6 +141,7 @@ public class PayoutService {
         payout.setStatus(PayoutStatus.PROCESSED);
         payout.setProcessedAt(OffsetDateTime.now());
         payoutRepository.save(payout);
+        notificationService.payoutApproved(payout.getVendor(), payout.getAmount());
 
         log.info("Payout {} approved for vendor {}", payoutId, payout.getVendor().getId());
         return PayoutResponse.fromEntity(payout);
@@ -166,7 +169,7 @@ public class PayoutService {
         List<OrderItem> claimedItems = orderItemRepository.findByPayoutId(payoutId);
         claimedItems.forEach(item -> item.setPayout(null));
         orderItemRepository.saveAll(claimedItems);
-
+        notificationService.payoutRejected(payout.getVendor(), payout.getAmount(), reason);
         log.info("Payout {} rejected for vendor {}: {}", payoutId, payout.getVendor().getId(), reason);
         return PayoutResponse.fromEntity(payout);
     }

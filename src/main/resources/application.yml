@@ -33,6 +33,15 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
 
+  mail:
+    host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+    port: ${MAIL_PORT:2525}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -57,13 +66,11 @@ app:
     minimum-amount: ${PAYOUT_MINIMUM_AMOUNT:20.00}
   platform:
     commission-rate: ${PLATFORM_COMMISSION_RATE:0.20}
+  mail:
+    from: ${MAIL_FROM:no-reply@marketplace.local}
 
 logging:
   level:
     root: INFO
     com.marketplace: DEBUG
     org.hibernate.SQL: DEBUG
-
-
-
-

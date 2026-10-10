@@ -14,6 +14,7 @@ import com.marketplace.enums.ProductStatus;
 import com.marketplace.exception.BadRequestException;
 import com.marketplace.exception.ForbiddenException;
 import com.marketplace.exception.ResourceNotFoundException;
+import com.marketplace.notification.NotificationService;
 import com.marketplace.repository.OrderItemRepository;
 import com.marketplace.repository.OrderRepository;
 import com.marketplace.repository.ProductRepository;
@@ -29,8 +30,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 
-import static com.marketplace.enums.LicenseType.REGULAR;
-
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -40,6 +39,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     @Value("${app.platform.commission-rate}")
     private BigDecimal commissionRate;
@@ -108,7 +108,10 @@ public class OrderService {
         order.setStatus(OrderStatus.PAID);
 
         Order saved = orderRepository.save(order);
+        notificationService.orderConfirmed(buyer, saved.getId(), saved.getTotalAmount());
         return OrderResponse.fromEntity(saved);
+
+
     }
 
     @Transactional(readOnly = true)
@@ -149,6 +152,7 @@ public class OrderService {
 
         FileStorageService.PresignedDownload presigned =
                 fileStorageService.generatePresignedDownloadUrl(product.getFileKey());
+
 
         // Track first download (analytics/audit usable)
         if (!item.isDownloaded()) {
