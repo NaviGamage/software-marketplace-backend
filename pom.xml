@@ -102,6 +102,12 @@
             <optional>true</optional>
         </dependency>
 
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
         <!-- MapStruct (DTO <-> Entity mapping, industry standard) -->
         <dependency>
             <groupId>org.mapstruct</groupId>
